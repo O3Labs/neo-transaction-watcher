@@ -8,11 +8,12 @@ import (
 	"log"
 	"net"
 
+	"github.com/o3labs/neo-utils/neoutils/neorpc"
 	"github.com/o3labs/neod/network"
 )
 
 const (
-	port = 30333
+	port = 20333
 )
 
 func handleConnection(conn net.Conn) {
@@ -27,6 +28,7 @@ func handleConnection(conn net.Conn) {
 		_, msg, err := network.ReadMessage(conn, nil)
 		if err != nil {
 			log.Printf("%v", err)
+			startConnectToSeed()
 			return
 		}
 
@@ -68,41 +70,22 @@ func handleConnection(conn net.Conn) {
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
 			b := out.Hash.ToBytes()
+			log.Printf("out = %v", b)
 			if out.Type == network.InventotyTypeTX {
 				//You can fetch getrawtransaction to see the transaction detail by txid
 				fmt.Printf("type = %v \ninv %v\n", out.Type, hex.EncodeToString(b))
+				txID := hex.EncodeToString(b)
+				client := neorpc.NewClient("http://localhost:30333")
+				raw := client.GetRawTransaction(txID)
+				log.Printf("%v", raw.Result)
 			}
-
 		}
-
 	}
-}
-
-func startServer() {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	conn, err := ln.Accept()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	//if remote node is trying to connect to this port then reply with local node version
-	log.Printf("accepted\n")
-	//once accept connection we then declear version.
-	nonce, _ := network.RandomUint32()
-	payload := network.NewVersionPayload(port, nonce)
-	versionCommand := network.NewMessage(network.NEOMagic, network.CommandVersion, payload)
-	conn.Write(versionCommand)
-
-	handleConnection(conn)
 }
 
 func startConnectToSeed() {
 	// connect to this socket
-	conn, err := net.Dial("tcp", "localhost:30333")
+	conn, err := net.Dial("tcp", "localhost:20333")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -112,7 +95,6 @@ func startConnectToSeed() {
 
 func main() {
 
-	// go startServer()
 	go startConnectToSeed()
 	for {
 
