@@ -7,21 +7,15 @@ import (
 	"io"
 )
 
-//http://docs.neo.org/en-us/node/network-protocol.html
+// http://docs.neo.org/en-us/node/network-protocol.html
 
-//A network protocol ID
+// A network protocol ID
 // Production mode = 7630401
-// Test mode =
-
-type Magic uint32
+type NEONetworkMagic uint32
 
 const (
-	//mainnet = 7630401
-	//privatenet = 56753
-	NEOMagic Magic = 56753
 	// NEO message header is Magic(4) + Command(12) + Payload Legth(4) + Checksum(4)
 	MessageHeaderSize = 24
-
 	MagicSize         = 4
 	CommandSize       = 12 // Fixed size for command. Shorter command must be zero padded
 	PayloadLegthSize  = 4
@@ -65,7 +59,7 @@ func getChecksum(payload []byte) uint32 {
 	return binary.LittleEndian.Uint32(second[0:4])
 }
 
-func NewMessage(magic Magic, command Command, p PayloadInterface) []byte {
+func NewMessage(magic NEONetworkMagic, command Command, p PayloadInterface) []byte {
 	payload := []byte{}
 	if p != nil {
 		var bw bytes.Buffer
@@ -86,11 +80,11 @@ func NewMessage(magic Magic, command Command, p PayloadInterface) []byte {
 }
 
 type MessageHeader struct {
-	Magic    Magic   // 4 bytes
-	Command  string  // 12 bytes
-	Length   uint32  // 4 bytes
-	Checksum [4]byte // 4 bytes. Int32
-	Payload  []byte  // Length bytes
+	Magic    NEONetworkMagic // 4 bytes
+	Command  string          // 12 bytes
+	Length   uint32          // 4 bytes
+	Checksum [4]byte         // 4 bytes. Int32
+	Payload  []byte          // Length bytes
 }
 
 func ReadMessage(r io.Reader, payloadOutput PayloadInterface) (int, *MessageHeader, error) {

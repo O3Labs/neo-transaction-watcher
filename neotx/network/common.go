@@ -273,12 +273,12 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		return nil
 
-	case *Magic:
+	case *NEONetworkMagic:
 		rv, err := binarySerializer.Uint32(r, littleEndian)
 		if err != nil {
 			return err
 		}
-		*e = Magic(rv)
+		*e = NEONetworkMagic(rv)
 		return nil
 
 	}
@@ -369,7 +369,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 		}
 		return nil
 
-	case Magic:
+	case NEONetworkMagic:
 		err := binarySerializer.PutUint32(w, littleEndian, uint32(e))
 		if err != nil {
 			return err

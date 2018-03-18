@@ -3,8 +3,29 @@ A headless daemon to connect to the NEO network to receive TX message.
 
 Change the endpoint of the network that you want to connect to and run. You will be able to see transaction coming in in near real-time.
 
-```
-go run main.go
+
+```go
+//this method conforms the interface
+func OnReceived(tx neotx.TX) {
+	log.Printf("%+v", tx)
+}
+
+func main() {
+	config := neotx.Config{
+		Network:   neotx.NEOMainNet,
+		Port:      10333,
+		IPAddress: "52.193.202.2",
+	}
+	err := neotx.Start(config, OnReceived)
+	if err != nil {
+		log.Printf("%v", err)
+		os.Exit(-1)
+	}
+
+	for {
+
+	}
+}
 ```
 
 In this example, only INV message type TX (transaction) will be in the log.
