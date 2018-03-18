@@ -3,7 +3,9 @@ A headless daemon to connect to the NEO network to receive TX message.
 
 Change the endpoint of the network that you want to connect to and run. You will be able to see transaction coming in in near real-time.
 
-#### Example or try `go run main.go`
+try `go run main.go` 
+
+#### main.go
 ```go
 //this method conforms the interface
 func OnReceived(tx neotx.TX) {
@@ -28,7 +30,6 @@ func main() {
 }
 ```
 
-In this example, only INV message type TX (transaction) will be in the log.
 
 You can fetch transaction detail by calling `getrawtransaction` JSON-RPC method.  
 You can use [neo-utils](https://github.com/O3Labs/neo-utils) to parse the invocation script to get information about the transaction like script hash, smart contract's method and params.
