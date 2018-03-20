@@ -19,10 +19,19 @@ const (
 )
 
 type Config struct {
-	Network    network.NEONetworkMagic
-	IPAddress  string
-	Port       uint16
+	Network   network.NEONetworkMagic
+	IPAddress string
+	Port      uint16
+}
+
+type Client struct {
+	Config     Config
+	delegate   MessageDelegate
 	connection net.Conn
+}
+
+func NewClient(config Config) *Client {
+	return &Client{Config: config}
 }
 
 type TX struct {
@@ -30,27 +39,35 @@ type TX struct {
 	ID   string
 }
 
-type OnReceivedTX func(tx TX)
-
-type Interface interface {
-	handleConnection(handler OnReceivedTX)
+type MessageDelegate interface {
+	OnReceive(TX)
+	OnConnected(network.Version)
+	OnError(error)
 }
 
-var _ Interface = (*Config)(nil)
+type Interface interface {
+	handleConnection()
+	Start() error
+	SetDelegate(MessageDelegate)
+}
 
-func (c *Config) handleConnection(handler OnReceivedTX) {
+var _ Interface = (*Client)(nil)
+
+func (c *Client) handleConnection() {
 	conn := c.connection
 	log.Printf("remote address = %v", conn.RemoteAddr().String())
 	log.Printf("local address = %v", conn.LocalAddr().String())
 	nonce, _ := network.RandomUint32()
-	payload := network.NewVersionPayload(c.Port, nonce)
-	versionCommand := network.NewMessage(c.Network, network.CommandVersion, payload)
+	payload := network.NewVersionPayload(c.Config.Port, nonce)
+	versionCommand := network.NewMessage(c.Config.Network, network.CommandVersion, payload)
 	conn.Write(versionCommand)
 
 	for {
 		_, msg, err := network.ReadMessage(conn, nil)
 		if err != nil {
-			log.Printf("%v", err)
+			if c.delegate != nil {
+				go c.delegate.OnError(err)
+			}
 			return
 		}
 
@@ -60,16 +77,20 @@ func (c *Config) handleConnection(handler OnReceivedTX) {
 			payloadByte := make([]byte, msg.Length)
 			_, err = io.ReadFull(conn, payloadByte)
 			if err != nil {
-				log.Printf("err %v ", err)
-				//continue
+				if c.delegate != nil {
+					go c.delegate.OnError(err)
+				}
 				continue
 			}
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
 			//reply with verack
-			verack := network.NewMessage(c.Network, network.CommandVerack, nil)
+			verack := network.NewMessage(c.Config.Network, network.CommandVerack, nil)
 			conn.Write(verack)
 
+			if c.delegate != nil {
+				go c.delegate.OnConnected(*out)
+			}
 		} else if msg.Command == string(network.CommandVerack) {
 
 		} else if msg.Command == string(network.CommandAddr) {
@@ -77,7 +98,9 @@ func (c *Config) handleConnection(handler OnReceivedTX) {
 			payloadByte := make([]byte, msg.Length)
 			_, err = io.ReadFull(conn, payloadByte)
 			if err != nil {
-				log.Printf("err %v ", err)
+				if c.delegate != nil {
+					go c.delegate.OnError(err)
+				}
 				continue
 			}
 			pr := bytes.NewBuffer(payloadByte)
@@ -87,7 +110,9 @@ func (c *Config) handleConnection(handler OnReceivedTX) {
 			payloadByte := make([]byte, msg.Length)
 			_, err = io.ReadFull(conn, payloadByte)
 			if err != nil {
-				log.Printf("err %v ", err)
+				if c.delegate != nil {
+					go c.delegate.OnError(err)
+				}
 				continue
 			}
 			pr := bytes.NewBuffer(payloadByte)
@@ -98,21 +123,27 @@ func (c *Config) handleConnection(handler OnReceivedTX) {
 				Type: out.Type,
 				ID:   txID,
 			}
-			go handler(tx)
+
+			if c.delegate != nil {
+				go c.delegate.OnReceive(tx)
+			}
+
 		}
 	}
 }
+func (c *Client) SetDelegate(d MessageDelegate) {
+	c.delegate = d
+}
 
-func Start(config Config, handler OnReceivedTX) error {
-	if handler == nil {
-		return fmt.Errorf("handler cannot be null")
-	}
-	address := fmt.Sprintf("%v:%v", config.IPAddress, config.Port)
+func (c *Client) Start() error {
+
+	address := fmt.Sprintf("%v:%v", c.Config.IPAddress, c.Config.Port)
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return err
 	}
-	config.connection = conn
-	config.handleConnection(handler)
+
+	c.connection = conn
+	c.handleConnection()
 	return nil
 }
