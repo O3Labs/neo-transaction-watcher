@@ -65,6 +65,7 @@ func (c *Client) handleConnection() {
 	for {
 		_, msg, err := network.ReadMessage(conn, nil)
 		if err != nil {
+			log.Printf("mesage from server when error %+v", msg)
 			if c.delegate != nil {
 				go c.delegate.OnError(err)
 			}
@@ -117,15 +118,17 @@ func (c *Client) handleConnection() {
 			}
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
-			b := out.Hash.ToBytes()
-			txID := hex.EncodeToString(b)
-			tx := TX{
-				Type: out.Type,
-				ID:   txID,
-			}
+			for _, v := range out.Hashes {
+				b := v.ToBytes()
+				txID := hex.EncodeToString(b)
+				tx := TX{
+					Type: out.Type,
+					ID:   txID,
+				}
 
-			if c.delegate != nil {
-				go c.delegate.OnReceive(tx)
+				if c.delegate != nil {
+					go c.delegate.OnReceive(tx)
+				}
 			}
 
 		}

@@ -2,6 +2,7 @@ package network
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -41,8 +42,8 @@ func (h *Hash) ToBytes() []byte {
 }
 
 type Inv struct {
-	Type InventoryType //4 bytes
-	Hash Hash
+	Type   InventoryType //4 bytes
+	Hashes []Hash
 }
 
 func (v *Inv) Decode(r io.Reader, protocolVersion uint32) error {
@@ -53,6 +54,12 @@ func (v *Inv) Decode(r io.Reader, protocolVersion uint32) error {
 	}
 	//hash is UInt256
 	var length uint8
-	ReadElements(buf, &v.Type, &length, &v.Hash)
+	ReadElements(buf, &v.Type, &length)
+	v.Hashes = make([]Hash, length)
+	for i := 0; i < int(length); i++ {
+		if err := binary.Read(r, binary.LittleEndian, &v.Hashes[i]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
