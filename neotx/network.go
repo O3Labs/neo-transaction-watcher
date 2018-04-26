@@ -65,8 +65,9 @@ func (c *Client) handleConnection() {
 	for {
 		_, msg, err := network.ReadMessage(conn, nil)
 		if err != nil {
-			log.Printf("mesage from server when error %+v", msg)
+			log.Printf("mesage from server when error %+v", err)
 			if c.delegate != nil {
+				c.connection.Close()
 				go c.delegate.OnError(err)
 			}
 			return
@@ -116,6 +117,7 @@ func (c *Client) handleConnection() {
 				}
 				continue
 			}
+			log.Printf("msg = %+v\n", msg)
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
 			for _, v := range out.Hashes {
