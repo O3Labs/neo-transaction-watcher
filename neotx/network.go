@@ -8,7 +8,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/o3labs/neo-transaction-watcher/neotx/network"
+	"github.com/corollari/neo-transaction-watcher/neotx/network"
 )
 
 //Network
@@ -64,6 +64,7 @@ func (c *Client) handleConnection() {
 
 	for {
 		_, msg, err := network.ReadMessage(conn, nil)
+		log.Printf("loop")
 		if err != nil {
 			log.Printf("mesage from server when error %+v", err)
 			if c.delegate != nil {

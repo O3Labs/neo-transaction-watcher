@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/o3labs/neo-transaction-watcher/neotx"
-	"github.com/o3labs/neo-transaction-watcher/neotx/network"
+	"github.com/corollari/neo-transaction-watcher/neotx"
+	"github.com/corollari/neo-transaction-watcher/neotx/network"
 )
 
 type Handler struct {
@@ -28,7 +28,7 @@ func main() {
 	config := neotx.Config{
 		Network:   neotx.NEOMainNet,
 		Port:      10333,
-		IPAddress: "52.193.202.2",
+		IPAddress: "52.14.228.80",
 	}
 	client := neotx.NewClient(config)
 	handler := &Handler{}
