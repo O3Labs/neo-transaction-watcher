@@ -28,7 +28,7 @@ func main() {
 	config := neotx.Config{
 		Network:   neotx.NEOMainNet,
 		Port:      10333,
-		IPAddress: "52.14.228.80",
+		IPAddress: "207.180.217.134",
 	}
 	client := neotx.NewClient(config)
 	handler := &Handler{}
