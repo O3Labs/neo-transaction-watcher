@@ -13,8 +13,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/o3labs/neo-transaction-watcher/neotx"
-	"github.com/o3labs/neo-transaction-watcher/neotx/network"
+	"github.com/corollari/neo-transaction-watcher/neotx"
+	"github.com/corollari/neo-transaction-watcher/neotx/network"
 )
 
 type Handler struct {

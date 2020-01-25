@@ -11,7 +11,7 @@ type ServiceFlag uint64
 
 const (
 	MaxUserAgentLength = 1024
-	DefaultUserAgent   = "NEOxO3:0.0.1;" //test
+	DefaultUserAgent   = "/Neo:2.10.2/" //test
 	ProtocolVersion    = uint32(0)
 	DefaultServiceFlag = ServiceFlag(1)
 )

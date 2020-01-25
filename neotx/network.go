@@ -7,8 +7,9 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 
-	"github.com/o3labs/neo-transaction-watcher/neotx/network"
+	"github.com/corollari/neo-transaction-watcher/neotx/network"
 )
 
 //Network
@@ -51,6 +52,17 @@ type Interface interface {
 	SetDelegate(MessageDelegate)
 }
 
+func startPingLoop(c *Client) {
+	conn := c.connection
+	for {
+		time.Sleep(1000 * time.Millisecond)
+		nonce, _ := network.RandomUint32()
+		payload := network.NewPingPayload(nonce)
+		pingCommand := network.NewMessage(c.Config.Network, network.CommandPing, payload)
+		conn.Write(pingCommand)
+	}
+}
+
 var _ Interface = (*Client)(nil)
 
 func (c *Client) handleConnection() {
@@ -73,17 +85,18 @@ func (c *Client) handleConnection() {
 			return
 		}
 
+		payloadByte := make([]byte, msg.Length)
+		_, err = io.ReadFull(conn, payloadByte)
+		if err != nil {
+			if c.delegate != nil {
+				go c.delegate.OnError(err)
+			}
+			continue
+		}
+
 		//receive version from remote node
 		if msg.Command == string(network.CommandVersion) {
 			out := &network.Version{}
-			payloadByte := make([]byte, msg.Length)
-			_, err = io.ReadFull(conn, payloadByte)
-			if err != nil {
-				if c.delegate != nil {
-					go c.delegate.OnError(err)
-				}
-				continue
-			}
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
 			//reply with verack
@@ -94,29 +107,15 @@ func (c *Client) handleConnection() {
 				go c.delegate.OnConnected(*out)
 			}
 		} else if msg.Command == string(network.CommandVerack) {
-
+			go startPingLoop(c)
+		} else if msg.Command == string(network.CommandPong) {
+			log.Println("Pong!")
 		} else if msg.Command == string(network.CommandAddr) {
 			out := &network.Addr{}
-			payloadByte := make([]byte, msg.Length)
-			_, err = io.ReadFull(conn, payloadByte)
-			if err != nil {
-				if c.delegate != nil {
-					go c.delegate.OnError(err)
-				}
-				continue
-			}
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
 		} else if msg.Command == string(network.CommandInv) {
 			out := &network.Inv{}
-			payloadByte := make([]byte, msg.Length)
-			_, err = io.ReadFull(conn, payloadByte)
-			if err != nil {
-				if c.delegate != nil {
-					go c.delegate.OnError(err)
-				}
-				continue
-			}
 			log.Printf("msg = %+v\n", msg)
 			pr := bytes.NewBuffer(payloadByte)
 			out.Decode(pr, 0)
@@ -132,7 +131,8 @@ func (c *Client) handleConnection() {
 					go c.delegate.OnReceive(tx)
 				}
 			}
-
+		} else {
+			log.Printf("Unhandled message: %s\n", msg.Command)
 		}
 	}
 }
